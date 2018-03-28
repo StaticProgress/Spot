@@ -9,9 +9,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     /* Store the system table for future use in other functions */
     ST = SystemTable;
 
-    InitializeLib(ImageHandle, SystemTable);
     /* Say hi */
-    Print(L"Hello World\n\r");
     Status = ST->ConOut->OutputString(ST->ConOut, L"We made it this far!\n");
     if (EFI_ERROR(Status))
         return Status;
