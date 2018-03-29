@@ -1,0 +1,1 @@
+qemu-system-x86_64 -curses -pflash bios.bin -hda fat:bin -net none
