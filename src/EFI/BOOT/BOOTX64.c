@@ -1,12 +1,68 @@
-#include <stdint.h>
 #include <efi.h>
 #include <efilib.h>
 
-EFI_STATUS
-efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *ST) {
-	InitializeLib(image, ST);
+EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
+	InitializeLib(Image, SysTable);
 
 	EFI_STATUS status;
+	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
+	UINTN handle_count = 0;
+	EFI_HANDLE *handle_buffer;
+
+	Print(L"Locating handles that support the Graphics Output Protocol...\n");
+
+	status = uefi_call_wrapper(SysTable->BootServices->LocateHandleBuffer, 3, ByProtocol, &gEfiGraphicsOutputProtocolGuid, NULL, &handle_count, &handle_buffer);
+
+	if (status == EFI_SUCCESS)
+		Print(L"%u handle(s) were successfully returned.\n", handle_count);
+	else {
+		if (status == EFI_NOT_FOUND)
+			Print(L"No handles match the search.\n");
+		else if (status == EFI_BUFFER_TOO_SMALL)
+			Print(L"The BufferSize is too small for the result. BufferSize has been updated with the size needed to complete the request.\n");
+		else if (status == EFI_INVALID_PARAMETER)
+			Print(L"Invalid parameter.\n");
+		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
+		return status;
+	}
+
+	Print(L"Attempting to open handle interface to GOP...\n");
+
+	status = uefi_call_wrapper(SysTable->BootServices->OpenProtocol, 6, handle_buffer[0], &gEfiGraphicsOutputProtocolGuid, (VOID **)&gop, Image, NULL, EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL);
+
+	if (status == EFI_SUCCESS)
+		Print(L"Success. Found %u supported modes.\n", gop->Mode->MaxMode);
+	else {
+		if (status == EFI_UNSUPPORTED)
+			Print(L"Handle does not support GOP.\n");
+		else if (status == EFI_INVALID_PARAMETER)
+			Print(L"Invalid parameter.\n");
+		else if (status == EFI_ACCESS_DENIED)
+			Print(L"Access denied.\n");
+		else if (status == EFI_ALREADY_STARTED)
+			Print(L"Already opened.\n");
+		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
+		return status;
+	}
+
+	UINTN info_size = 0, mode = -1;
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info = NULL;
+
+	Print(L"Querying modes for highest supported resolution...\n");
+
+	while ((status = gop->QueryMode(gop, ++mode, &info_size, &info)) == EFI_SUCCESS) {
+		if (info->HorizontalResolution == 1024 && info->VerticalResolution == 768 && info->PixelFormat == PixelBitMask) break;
+	}
+
+	Print(L"Press any key to change resolution.\n");
+
+	WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
+	status = gop->SetMode(gop, mode);
+
+	if (status == EFI_SUCCESS)
+		Print(L"Switched to 1024x768\n");
+	else
+		Print(L"Failed to set mode\n");
 
 	UINTN map_size = 0, map_key = 0, desc_size = 0, alloc_pages = 0;
 	UINT32 desc_ver = 0;
@@ -17,11 +73,14 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *ST) {
 	mem_map.Type = EfiLoaderData;
 	mem_map.Attribute = EFI_MEMORY_RUNTIME;
 
-	Print(L"Getting memory map\n");
+	Print(L"Getting memory map...\n");
 
-	while ((status = uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &map_size, &mem_map, &map_key, &desc_size, &desc_ver)) == EFI_BUFFER_TOO_SMALL) {
-		if (alloc_pages) {
-			status = uefi_call_wrapper(ST->BootServices->FreePages, 2, alloc_addr, alloc_pages);
+	// Get size of memory map first, then allocate number of pages necessary before calling GetMemoryMap() again. If still not enough, reallocate and try again
+	while ((status = uefi_call_wrapper(SysTable->BootServices->GetMemoryMap, 5, &map_size, &mem_map, &map_key, &desc_size, &desc_ver)) == EFI_BUFFER_TOO_SMALL) {
+		if (alloc_pages) { // If we have allocated pages for the memory map already but buffer is still too small, deallocate them before reallocating
+			Print(L"Buffer too small. Attempting to free allocated pages...\n");
+
+			status = uefi_call_wrapper(SysTable->BootServices->FreePages, 2, alloc_addr, alloc_pages);
 
 			if (status == EFI_SUCCESS)
 				Print(L"Freed %u page(s) at start address %x\n", alloc_pages, alloc_addr);
@@ -30,13 +89,15 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *ST) {
 					Print(L"The requested memory pages were not allocated.\n");
 				else if (status == EFI_INVALID_PARAMETER)
 					Print(L"Memory is not a page-aligned address or Pages is invalid.\n");
-				WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+				WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 				return status;
 			}
 		}
 
-		alloc_pages = map_size / 4096 + 1;
-		status = uefi_call_wrapper(ST->BootServices->AllocatePages, 4, AllocateAnyPages, mem_map.Type, alloc_pages, &alloc_addr);
+		Print(L"%u bytes required for memory map. Allocating pages...\n");
+
+		alloc_pages = map_size / 4096 + 1; // allocate the number of pages (4K) needed for memory map
+		status = uefi_call_wrapper(SysTable->BootServices->AllocatePages, 4, AllocateAnyPages, mem_map.Type, alloc_pages, &alloc_addr);
 		mem_map.PhysicalStart = alloc_addr;
 		map_size = alloc_pages * 4096;
 
@@ -49,25 +110,40 @@ efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *ST) {
 				Print(L"The requested pages could not be found.\n");
 			else if (status == EFI_INVALID_PARAMETER)
 				Print(L"Memory is NULL.\n");
-			WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+			WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 			return status;
 		}
 	}
 
-	if (status == EFI_INVALID_PARAMETER) {
+	if (status == EFI_INVALID_PARAMETER) { // check if last GetMemoryMap was successful
 		Print(L"Failed to get memory map");
-		WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 		return status;
 	}
 
-	// cannot use any function between getting the memory map and exiting boot services since it will invalidate the map key
-	status = uefi_call_wrapper(ST->BootServices->ExitBootServices, 2, image, map_key);
+	// ! cannot use any function between getting the memory map and exiting boot services since it will invalidate the map key !
+	status = uefi_call_wrapper(SysTable->BootServices->ExitBootServices, 2, Image, map_key);
 
 	if (status != EFI_SUCCESS) {
-		Print(L"Could not exit, invalid memory key\n");
-		WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+		Print(L"Could not exit boot services, invalid memory key\n");
+		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 		return status;
 	}
 
-	return EFI_SUCCESS;
+	// get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
+	UINTN x = 1024 / 2, y = 768 / 2 , width = 100;
+	UINT8 red = 0xff, green = 0xff, blue = 0x00;
+	UINT8 *FB_base = (UINT8 *)gop->Mode->FrameBufferBase, *FB_ptr = FB_base + (1024 * (y - width / 2) + x - width / 2) * 3;
+
+	// draw square in center of screen
+	for (UINTN row = 0; row < width; row++) {
+		for (UINTN col = 0; col < width; col++) {
+			*FB_ptr++ = blue;
+			*FB_ptr++ = green;
+			*FB_ptr++ = red;
+		}
+		FB_ptr += (1024 - width) * 3;
+	}
+
+	return status;
 }
