@@ -2,61 +2,72 @@
 #include <efi.h>
 #include <efilib.h>
 
-#define MEM_MAP_PAGE_NUM 2
+EFI_STATUS
+efi_main(EFI_HANDLE image, EFI_SYSTEM_TABLE *ST) {
+	InitializeLib(image, ST);
 
-/* Args:
- *  mem_map_start = The address to store the allocated pages for the memory map.
- */
-void allocate_mem_map(EFI_PHYSICAL_ADDRESS *mem_map_start)
-{
-    uint32_t status = uefi_call_wrapper(ST->BootServices->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, MEM_MAP_PAGE_NUM, mem_map_start);
-    if(status != EFI_SUCCESS) {
-        Print(L"Error: Not able to allocate pages for memory map.\n");
-    }
-}
+	EFI_STATUS status;
 
-void get_memory_map(EFI_MEMORY_DESCRIPTOR *mem_map, uint64_t *mem_map_size, uint64_t *map_key)
-{
-    EFI_PHYSICAL_ADDRESS mem_map_start;
-    allocate_mem_map(&mem_map_start);
+	UINTN map_size = 0, map_key = 0, desc_size = 0, alloc_pages = 0;
+	UINT32 desc_ver = 0;
 
-    mem_map->Type = EfiLoaderData,
-    mem_map->PhysicalStart = mem_map_start,
-    mem_map->VirtualStart = 0,
-    mem_map->NumberOfPages = MEM_MAP_PAGE_NUM,
-    mem_map->Attribute = EFI_MEMORY_RUNTIME;
-    
-    *mem_map_size = MEM_MAP_PAGE_NUM * 1024;
-    uint64_t desc_size; 
-    uint32_t desc_version;
-    uint32_t status = uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, mem_map_size, mem_map, map_key, &desc_size, &desc_version);
-    
-    if(status != EFI_SUCCESS) {
-        Print(L"Error: Not able to get memory map");
-    }
-}
+	EFI_PHYSICAL_ADDRESS alloc_addr;
 
-EFI_STATUS efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *systab)
-{
-	InitializeLib(image, systab);
-    uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut);
-	Print(L"SpotOS!\n");
+	EFI_MEMORY_DESCRIPTOR mem_map;
+	mem_map.Type = EfiLoaderData;
+	mem_map.Attribute = EFI_MEMORY_RUNTIME;
 
-    //Get a memory map
-    EFI_MEMORY_DESCRIPTOR mem_map;
-    uint64_t map_key; //Used to tell if the memory map is up to date.
-    uint64_t mem_map_size; //Size in bytes of the memory map array.
-    get_memory_map(&mem_map, &mem_map_size, &map_key);
-   
-    uint32_t status = uefi_call_wrapper(ST->BootServices->ExitBootServices, 2, image, map_key);
-    if(status != EFI_SUCCESS) {
-        Print(L"Error: Not able to exit boot services");
-    }
+	Print(L"Getting memory map\n");
 
-    //Writing a little bit to Vga memory
-    //Good reading: http://www.osdever.net/FreeVGA/vga/vgamem.htm
-    char *vga_mem = (char*) 0x000b8000;
-    *vga_mem = 'T'; 
+	while ((status = uefi_call_wrapper(ST->BootServices->GetMemoryMap, 5, &map_size, &mem_map, &map_key, &desc_size, &desc_ver)) == EFI_BUFFER_TOO_SMALL) {
+		if (alloc_pages) {
+			status = uefi_call_wrapper(ST->BootServices->FreePages, 2, alloc_addr, alloc_pages);
 
-    return EFI_SUCCESS;
+			if (status == EFI_SUCCESS)
+				Print(L"Freed %u page(s) at start address %x\n", alloc_pages, alloc_addr);
+			else {
+				if (status == EFI_NOT_FOUND)
+					Print(L"The requested memory pages were not allocated.\n");
+				else if (status == EFI_INVALID_PARAMETER)
+					Print(L"Memory is not a page-aligned address or Pages is invalid.\n");
+				WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+				return status;
+			}
+		}
+
+		alloc_pages = map_size / 4096 + 1;
+		status = uefi_call_wrapper(ST->BootServices->AllocatePages, 4, AllocateAnyPages, mem_map.Type, alloc_pages, &alloc_addr);
+		mem_map.PhysicalStart = alloc_addr;
+		map_size = alloc_pages * 4096;
+
+		if (status == EFI_SUCCESS)
+			Print(L"Allocated %u page(s) at start address %x\n", alloc_pages, alloc_addr);
+		else {
+			if (status == EFI_OUT_OF_RESOURCES)
+				Print(L"The pages could not be allocated.\n");
+			else if (status == EFI_NOT_FOUND)
+				Print(L"The requested pages could not be found.\n");
+			else if (status == EFI_INVALID_PARAMETER)
+				Print(L"Memory is NULL.\n");
+			WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+			return status;
+		}
+	}
+
+	if (status == EFI_INVALID_PARAMETER) {
+		Print(L"Failed to get memory map");
+		WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+		return status;
+	}
+
+	// cannot use any function between getting the memory map and exiting boot services since it will invalidate the map key
+	status = uefi_call_wrapper(ST->BootServices->ExitBootServices, 2, image, map_key);
+
+	if (status != EFI_SUCCESS) {
+		Print(L"Could not exit, invalid memory key\n");
+		WaitForSingleEvent(ST->ConIn->WaitForKey, 0);
+		return status;
+	}
+
+	return EFI_SUCCESS;
 }
