@@ -23,6 +23,8 @@ LDLIBS := -lefi -lgnuefi $(LIBGCC) -T $(EFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 TARGETS := BOOTX64.EFI
 
+OBJECTS := BOOTX64.o kprint.o
+
 all: $(TARGETS)
 
 %.EFI : %.so
@@ -32,9 +34,9 @@ all: $(TARGETS)
 		    -j .reloc --target efi-app-$(ARCH) $< $@; \
 	rm -rf $<
 
-%.so: %.o $(BUILDDIR)
+%.so: $(OBJECTS) $(BUILDDIR)
 	cd $(OBJDIR); \
-	$(LD) $(LDFLAGS) $< -o $(BUILDDIR)/$@ $(LDLIBS)
+	$(LD) $(LDFLAGS) $(OBJECTS) -o $(BUILDDIR)/$@ $(LDLIBS)
 
 %.o: %.c $(OBJDIR)
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $(OBJDIR)/$@
