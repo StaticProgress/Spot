@@ -1,5 +1,8 @@
 #include <efi.h>
 #include <efilib.h>
+#include <stdint.h>
+
+#include "kprint.h"
 
 EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	InitializeLib(Image, SysTable);
@@ -64,6 +67,8 @@ EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	else
 		Print(L"Failed to set mode\n");
 
+	Print(L"%u bytes\n", gop->Mode->FrameBufferSize);
+
 	UINTN map_size = 0, map_key = 0, desc_size = 0, alloc_pages = 0;
 	UINT32 desc_ver = 0;
 
@@ -101,9 +106,9 @@ EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		mem_map.PhysicalStart = alloc_addr;
 		map_size = alloc_pages * 4096;
 
-		if (status == EFI_SUCCESS)
+		if (status == EFI_SUCCESS) {
 			Print(L"Allocated %u page(s) at start address %x\n", alloc_pages, alloc_addr);
-		else {
+		} else {
 			if (status == EFI_OUT_OF_RESOURCES)
 				Print(L"The pages could not be allocated.\n");
 			else if (status == EFI_NOT_FOUND)
@@ -130,20 +135,25 @@ EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		return status;
 	}
 
+	for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
+
 	// get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
-	UINTN x = 1024 / 2, y = 768 / 2 , width = 100;
-	UINT8 red = 0xff, green = 0xff, blue = 0x00;
-	UINT8 *FB_base = (UINT8 *)gop->Mode->FrameBufferBase, *FB_ptr = FB_base + (1024 * (y - width / 2) + x - width / 2) * 3;
+	UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
+	UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
+	UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
 
 	// draw square in center of screen
-	for (UINTN row = 0; row < width; row++) {
-		for (UINTN col = 0; col < width; col++) {
-			*FB_ptr++ = blue;
-			*FB_ptr++ = green;
-			*FB_ptr++ = red;
+	for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
+		for (UINTN c = 0; c < w; c++) {
+			*frame_ptr++ = blue;
+			*frame_ptr++ = green;
+			*frame_ptr++ = red;
 		}
-		FB_ptr += (1024 - width) * 3;
+		frame_ptr += (1024 - w) * 3;
 	}
+
+	// function to print string at specified x and y coordinates
+	kprint(frame_base, x-45, y-14, 0xEF7223, "Welcome to\nSpot OS!\n");
 
 	return status;
 }
