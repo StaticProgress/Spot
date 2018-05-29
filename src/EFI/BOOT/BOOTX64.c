@@ -1,6 +1,5 @@
 #include <efi.h>
 #include <efilib.h>
-#include <stdint.h>
 
 #include "kprint.h"
 
