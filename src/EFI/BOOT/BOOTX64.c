@@ -53,11 +53,12 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 
 	video_output.max_mode = gop->Mode->MaxMode;
 	video_output.cur_mode = gop->Mode->Mode;
+	video_output.frame_buffer_base = (UINTN *)gop->Mode->FrameBufferBase;
 	UINTN info_size = 0, desired_mode = 0;
 	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info[video_output.max_mode];
 	VIDEO_MODE *modes[video_output.max_mode];
 	status = uefi_call_wrapper(SysTable->BootServices->AllocatePool, 3, EfiRuntimeServicesData, sizeof(VIDEO_MODE) * video_output.max_mode, (VOID **)&modes);
-	video_output.all_modes = (VIDEO_MODE **)&modes;
+	video_output.all_modes = (VIDEO_MODE **)modes;
 
 	Print(L"Querying %u modes for highest supported resolution...\n", video_output.max_mode);
 
@@ -69,7 +70,7 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 			modes[mode]->h_res = info[mode]->HorizontalResolution;
 			modes[mode]->v_res = info[mode]->VerticalResolution;
 			modes[mode]->pixel_per_scan_line = info[mode]->PixelsPerScanLine;
-			modes[mode]->draw_pixel = select_draw_pixel(&info[mode]->PixelInformation);
+			modes[mode]->draw_pixel = select_draw_pixel(&info[mode]->PixelInformation, info[mode]->PixelFormat);
 			if (modes[mode]->h_res * modes[mode]->v_res > res) {
 				desired_mode = mode;
 				res = modes[mode]->h_res * modes[mode]->v_res;
@@ -88,7 +89,7 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	} else
 		Print(L"Failed to set mode. Current mode is ");
 
-	Print(L"%ux%u\n", gop->Mode->Info->HorizontalResolution, gop->Mode->Info->VerticalResolution);
+	Print(L"%ux%u\n", video_output.all_modes[video_output.cur_mode]->h_res, video_output.all_modes[video_output.cur_mode]->v_res);
 
 	UINTN map_size = 0, map_key = 0, desc_size = 0, alloc_pages = 0;
 	UINT32 desc_ver = 0;
@@ -155,27 +156,29 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 		return status;
 	}
+
 	clear_screen();
 
-	/* 	for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
+	// the old method is probably way more efficient so I'm leaving it here
+	//for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
 
-	    // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
-	    UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
-	    UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
-	    UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
+	// get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
+	UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
+	UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
+	UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
 
-	    // draw square in center of screen
-	    for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
-	        for (UINTN c = 0; c < w; c++) {
-	            *frame_ptr++ = blue;
-	            *frame_ptr++ = green;
-	            *frame_ptr++ = red;
-	        }
-	        frame_ptr += (1024 - w) * 3;
-	    }
+	// draw square in center of screen
+	for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
+		for (UINTN c = 0; c < w; c++) {
+			*frame_ptr++ = blue;
+			*frame_ptr++ = green;
+			*frame_ptr++ = red;
+		}
+		frame_ptr += (1024 - w) * 3;
+	}
 
-	    // function to print string at specified x and y coordinates
-	    kprint(frame_base, x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n"); */
+	// function to print string at specified x and y coordinates
+	kprint(frame_base, x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n");
 
 	return status;
 }

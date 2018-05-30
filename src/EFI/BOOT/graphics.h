@@ -19,6 +19,6 @@ typedef struct VIDEO_DEVICE {
 } VIDEO_DEVICE;
 
 void clear_screen();
-DRAW_PIXEL_FN select_draw_pixel(EFI_PIXEL_BITMASK *bitmask);
+DRAW_PIXEL_FN select_draw_pixel(EFI_PIXEL_BITMASK *bitmask, EFI_GRAPHICS_PIXEL_FORMAT format);
 
 extern VIDEO_DEVICE video_output;
