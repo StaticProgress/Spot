@@ -1,9 +1,13 @@
 #include <efi.h>
 #include <efilib.h>
 
+#include "graphics.h"
 #include "kprint.h"
 
-EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
+VIDEO_DEVICE video_output = {0};
+
+EFI_STATUS
+efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	InitializeLib(Image, SysTable);
 
 	EFI_STATUS status;
@@ -47,26 +51,43 @@ EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		return status;
 	}
 
-	UINTN info_size = 0, mode = -1;
-	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info = NULL;
+	video_output.max_mode = gop->Mode->MaxMode;
+	video_output.cur_mode = gop->Mode->Mode;
+	UINTN info_size = 0, desired_mode = 0;
+	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info[video_output.max_mode];
+	VIDEO_MODE modes[video_output.max_mode];
+	video_output.all_modes = (VIDEO_MODE **)&modes;
 
-	Print(L"Querying modes for highest supported resolution...\n");
+	Print(L"Querying %u modes for highest supported resolution...\n", video_output.max_mode);
 
-	while ((status = gop->QueryMode(gop, ++mode, &info_size, &info)) == EFI_SUCCESS) {
-		if (info->HorizontalResolution == 1024 && info->VerticalResolution == 768 && info->PixelFormat == PixelBitMask) break;
+	for (UINT32 mode = 0, res = 0; mode < video_output.max_mode; mode++) {
+		info[mode] = NULL;
+		status = gop->QueryMode(gop, mode, &info_size, (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION **)&info[mode]);
+		if (info[mode]->PixelFormat < PixelBltOnly) {
+			modes[mode].mode_id = mode;
+			modes[mode].h_res = info[mode]->HorizontalResolution;
+			modes[mode].v_res = info[mode]->VerticalResolution;
+			modes[mode].pixel_per_scan_line = info[mode]->PixelsPerScanLine;
+			modes[mode].draw_pixel = select_draw_pixel(&info[mode]->PixelInformation);
+			if (modes[mode].h_res * modes[mode].v_res > res) {
+				desired_mode = mode;
+				res = modes[mode].h_res * modes[mode].v_res;
+			}
+		}
 	}
 
 	Print(L"Press any key to change resolution.\n");
 
 	WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
-	status = gop->SetMode(gop, mode);
+	status = gop->SetMode(gop, desired_mode);
 
-	if (status == EFI_SUCCESS)
-		Print(L"Switched to 1024x768\n");
-	else
-		Print(L"Failed to set mode\n");
+	if (status == EFI_SUCCESS) {
+		video_output.cur_mode = desired_mode;
+		Print(L"Switched to ");
+	} else
+		Print(L"Failed to set mode. Current mode is ");
 
-	Print(L"%u bytes\n", gop->Mode->FrameBufferSize);
+	Print(L"%ux%u\n", gop->Mode->Info->HorizontalResolution, gop->Mode->Info->VerticalResolution);
 
 	UINTN map_size = 0, map_key = 0, desc_size = 0, alloc_pages = 0;
 	UINT32 desc_ver = 0;
@@ -134,25 +155,27 @@ EFI_STATUS efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		return status;
 	}
 
-	for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
+	clear_screen();
 
-	// get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
-	UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
-	UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
-	UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
+	/* 	for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
 
-	// draw square in center of screen
-	for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
-		for (UINTN c = 0; c < w; c++) {
-			*frame_ptr++ = blue;
-			*frame_ptr++ = green;
-			*frame_ptr++ = red;
-		}
-		frame_ptr += (1024 - w) * 3;
-	}
+	    // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
+	    UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
+	    UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
+	    UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
 
-	// function to print string at specified x and y coordinates
-	kprint(frame_base, x-45, y-14, 0xEF7223, "Welcome to\nSpot OS!\n");
+	    // draw square in center of screen
+	    for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
+	        for (UINTN c = 0; c < w; c++) {
+	            *frame_ptr++ = blue;
+	            *frame_ptr++ = green;
+	            *frame_ptr++ = red;
+	        }
+	        frame_ptr += (1024 - w) * 3;
+	    }
+
+	    // function to print string at specified x and y coordinates
+	    kprint(frame_base, x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n"); */
 
 	return status;
 }
