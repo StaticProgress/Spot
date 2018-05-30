@@ -23,7 +23,7 @@ void draw_pixel_reserved_bgr(UINTN x, UINTN y, UINT32 color) {
 	UINT32 *frame_ptr = (UINT32 *)video_output.frame_buffer_base + y * video_output.all_modes[video_output.cur_mode]->h_res + x;
 	/* totally stole this from bit twiddling hacks */
 	color = ((color >> 8) & 0xFF00FF) | ((color & 0xFF00FF) << 8); // swap bytes
-	color = (color >> 16) | (color << 16); // swap 2-byte long pairs
+	color = (color >> 16) | (color << 16);                         // swap 2-byte long pairs
 	*frame_ptr++ = color;
 }
 
@@ -35,8 +35,8 @@ DRAW_PIXEL_FN select_draw_pixel(EFI_PIXEL_BITMASK *bitmask) {
 	return NULL;
 }
 
-void clear_screen () {
+void clear_screen() {
+	DRAW_PIXEL_FN draw = video_output.all_modes[video_output.cur_mode]->draw_pixel;
 	for (UINT32 i = 0; i < video_output.all_modes[video_output.cur_mode]->v_res; i++)
-		for(UINT32 j = 0; j < video_output.all_modes[video_output.cur_mode]->h_res; j++)
-			video_output.all_modes[video_output.cur_mode]->draw_pixel(j,i,0x0);
+		for (UINT32 j = 0; j < video_output.all_modes[video_output.cur_mode]->h_res; j++) draw(j, i, 0xFFFFFFFF);
 }

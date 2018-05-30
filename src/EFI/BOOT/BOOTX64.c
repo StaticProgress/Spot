@@ -55,7 +55,8 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	video_output.cur_mode = gop->Mode->Mode;
 	UINTN info_size = 0, desired_mode = 0;
 	EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *info[video_output.max_mode];
-	VIDEO_MODE modes[video_output.max_mode];
+	VIDEO_MODE *modes[video_output.max_mode];
+	status = uefi_call_wrapper(SysTable->BootServices->AllocatePool, 3, EfiRuntimeServicesData, sizeof(VIDEO_MODE) * video_output.max_mode, (VOID **)&modes);
 	video_output.all_modes = (VIDEO_MODE **)&modes;
 
 	Print(L"Querying %u modes for highest supported resolution...\n", video_output.max_mode);
@@ -64,14 +65,14 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		info[mode] = NULL;
 		status = gop->QueryMode(gop, mode, &info_size, (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION **)&info[mode]);
 		if (info[mode]->PixelFormat < PixelBltOnly) {
-			modes[mode].mode_id = mode;
-			modes[mode].h_res = info[mode]->HorizontalResolution;
-			modes[mode].v_res = info[mode]->VerticalResolution;
-			modes[mode].pixel_per_scan_line = info[mode]->PixelsPerScanLine;
-			modes[mode].draw_pixel = select_draw_pixel(&info[mode]->PixelInformation);
-			if (modes[mode].h_res * modes[mode].v_res > res) {
+			modes[mode]->mode_id = mode;
+			modes[mode]->h_res = info[mode]->HorizontalResolution;
+			modes[mode]->v_res = info[mode]->VerticalResolution;
+			modes[mode]->pixel_per_scan_line = info[mode]->PixelsPerScanLine;
+			modes[mode]->draw_pixel = select_draw_pixel(&info[mode]->PixelInformation);
+			if (modes[mode]->h_res * modes[mode]->v_res > res) {
 				desired_mode = mode;
-				res = modes[mode].h_res * modes[mode].v_res;
+				res = modes[mode]->h_res * modes[mode]->v_res;
 			}
 		}
 	}
@@ -154,7 +155,6 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 		return status;
 	}
-
 	clear_screen();
 
 	/* 	for (UINT32 i = 0, *p = (UINT32 *)gop->Mode->FrameBufferBase; i < (gop->Mode->FrameBufferSize / 4); i++, p++) *p = 0;
