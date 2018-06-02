@@ -1,12 +1,13 @@
 #include "kprint.h"
 #include "string.h"
 #include "graphics.h"
-#include "stdint.h"
+
+#include <efi.h>
+#include <efilib.h>
 
 static UINTN curr_x, curr_y = 0;
-static void kscroll(UINTN *frame_buffer_base, UINTN rows);
 
-void kprint_char(UINTN *frame_base, UINTN offset, UINT32 color, char character) {
+void kprint_char(UINT8 *frame_base, UINTN offset, UINT32 color, char character) {
 
 	UINT8 ascii_bits[95][13] = {
 	    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // space: 32
@@ -107,8 +108,7 @@ void kprint_char(UINTN *frame_base, UINTN offset, UINT32 color, char character) 
 	};
 
 	UINT8 blue = 0xFF & color, green = 0xff & (color >> 8), red = 0xff & (color >> 16);
-	UINT8 char_idx = character - 32;
-    UINTN *frame_ptr = frame_base + offset * 3;
+	UINT8 char_idx = character - 32, *frame_ptr = frame_base + offset * 3;
 
 	for (INTN r = 12; r >= 0; r--) {
 		for (INTN c = 7; c >= 0; c--) {
@@ -124,7 +124,7 @@ void kprint_char(UINTN *frame_base, UINTN offset, UINT32 color, char character) 
 	}
 }
 
-void kprint(UINTN *frame_base, UINTN x, UINTN y, UINT32 color, char *str) {
+void kprint(UINT8 *frame_base, UINTN x, UINTN y, UINT32 color, char *str) {
 	UINTN offset = y * 1024 + x;
 	for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
 		if (31 < (*char_ptr) && (*char_ptr) < 127) {
@@ -138,7 +138,7 @@ void kprint(UINTN *frame_base, UINTN x, UINTN y, UINT32 color, char *str) {
 }
 
 //KPrint that remembers where it last printed and continues to print there.
-void kprint_m(UINTN *frame_base, UINT32 color, char* str) {
+void kprint_m(UINT8 *frame_base, UINT32 color, char* str) {
 	UINTN offset = curr_y * 1024 + curr_x;
 	for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
 		if (31 < (*char_ptr) && (*char_ptr) < 127) {
@@ -153,7 +153,7 @@ void kprint_m(UINTN *frame_base, UINT32 color, char* str) {
             //TODO: Stop hardcoding character sizes.
             //We need to scroll the terminal up by one character.
             //Each character is 14 pixels.
-            kscroll(video_output.frame_buffer_base, 14);
+            kscroll(frame_base, 14);
             curr_y -= 14;
         }
 	}
@@ -162,13 +162,15 @@ void kprint_m(UINTN *frame_base, UINT32 color, char* str) {
 
 //Will move the video memory up by the number of pixel rows.
 //Also zeroes out the area of memory that is at the end of the memory.
-static void kscroll(UINTN *frame_buffer_base, UINTN rows) {
-    //TODO: We should not be using memcpy but instead memmove, but for that we need the memory allocater.
-    VIDEO_MODE *curr_mode = video_output.all_modes[video_output.cur_mode];
-    UINTN pixel_num = rows * curr_mode->v_res * 3;
-    UINTN video_mem_size = curr_mode->h_res * curr_mode->v_res;
-    UINTN shift_size = video_mem_size - pixel_num;
-    memcpy(frame_buffer_base, frame_buffer_base + pixel_num, shift_size);
+void kscroll(UINT8 *frame_buffer_base, UINTN rows) {
+    //TODO: Switch from memcpy to memmove as the regions are overlapping.
+    //Requires memory allocater though.
+    //VIDEO_MODE *curr_mode = video_output.all_modes[video_output.cur_mode];
+    UINTN pixel_num = rows * 1024 * 3;
+    UINTN video_mem_size = 768 * 1024;
+    UINTN shift_size = video_mem_size - pixel_num; 
+    //Shift up the video memory
+    spot_memcpy(frame_buffer_base, frame_buffer_base + pixel_num, shift_size);
     //Clear the last row.
-    memset(frame_buffer_base + shift_size, 0x0, pixel_num);
+    spot_memset(frame_buffer_base + shift_size, 0x0, pixel_num);
 }
