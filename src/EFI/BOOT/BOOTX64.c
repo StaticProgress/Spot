@@ -3,6 +3,7 @@
 
 #include "graphics.h"
 #include "kprint.h"
+#include "print.h"
 
 VIDEO_DEVICE video_output = {0};
 
@@ -165,10 +166,10 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	// get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
 	UINTN x = 1024 / 2, y = 768 / 2, w = 100, h = 50;
 	UINT8 red = 0xFF, green = 0xFF, blue = 0xFF;
-	UINT8 *frame_base = (UINT8 *)gop->Mode->FrameBufferBase;
+	UINTN *frame_base = (UINTN*)gop->Mode->FrameBufferBase;
 
 	// draw square in center of screen
-	for (UINT8 r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
+	for (UINTN r = 0, *frame_ptr = frame_base + (1024 * (y - h / 2) + x - w / 2) * 3; r < h; r++) {
 		for (UINTN c = 0; c < w; c++) {
 			*frame_ptr++ = blue;
 			*frame_ptr++ = green;
@@ -179,6 +180,10 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 
 	// function to print string at specified x and y coordinates
 	kprint(frame_base, x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n");
+
+    for(int i = 0; i < 40; i++) {
+        printf("Hello there world");
+    }
 
 	return status;
 }
