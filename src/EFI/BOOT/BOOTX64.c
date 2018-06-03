@@ -4,6 +4,7 @@
 #include "graphics.h"
 #include "kprint.h"
 #include "print.h"
+#include "string.h"
 
 VIDEO_DEVICE video_output = {0};
 
@@ -185,7 +186,9 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
         printf("Hello there world\n");
         printf("Other test string\n");
     }
-    kscroll(video_output.frame_buffer_base, 14);
+    //kscroll(video_output.frame_buffer_base, 14);
+    spot_memcpy(video_output.frame_buffer_base, video_output.frame_buffer_base + (14 * 1024 * 3), (14 * 1024 * 3));
+
 
 	return status;
 }

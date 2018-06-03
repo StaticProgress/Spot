@@ -1,4 +1,5 @@
 #include "string.h"
+#include <efi.h>
 
 void *spot_memcpy(void *dest, void *src, UINTN size) {
     for(UINTN i = (UINTN)src; i < (UINTN)(src + size); i++)
