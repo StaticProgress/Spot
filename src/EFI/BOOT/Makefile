@@ -21,17 +21,23 @@ LDFLAGS := -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sh
 LIBGCC := $(shell $(CC) -print-libgcc-file-name)
 LDLIBS := -lefi -lgnuefi $(LIBGCC) -T $(EFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
-TARGETS := BOOTX64.EFI
+TARGETS := BOOTX64.EFI BOOTX64.debug
 
-OBJECTS := BOOTX64.o kprint.o graphics.o print.o string.o
+OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o
 
 all: $(TARGETS)
 
 %.EFI : %.so
 	cd $(BUILDDIR); \
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
-		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
-		    -j .reloc --target efi-app-$(ARCH) $< $@; \
+		       -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela*  -j .reloc \
+			   --target efi-app-$(ARCH) $< $@;
+
+%.debug : %.so
+	cd $(BUILDDIR); \
+	$(OBJCOPY) -j .debug_info -j .debug_abbrev -j .debug_loc -j .debug_aranges \
+			   -j .debug_line -j .debug_macinfo -j .debug_str -j .debug* \
+			   --target efi-app-$(ARCH) $< $@; \
 	rm -rf $<
 
 %.so: $(OBJECTS) $(BUILDDIR)
