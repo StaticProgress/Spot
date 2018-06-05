@@ -8,9 +8,9 @@
 
 //For now we will build in Debug mode because it is useful
 //but can be turned off it's annoying.
-#define SPOT_DEBUG
-
 VIDEO_DEVICE video_output = {0};
+
+#define SPOT_DEBUG
 
 EFI_STATUS
 efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
