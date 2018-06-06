@@ -3,11 +3,11 @@
 
 #include "graphics.h"
 #include "kprint.h"
-#include "print.h"
-#include "string.h"
 
-//For now we will build in Debug mode because it is useful
-//but can be turned off it's annoying.
+//Enable for debugging:
+//TODO: Simplify the debugging process so its not a pain in the rear.
+//#define SPOT_DEBUG
+
 VIDEO_DEVICE video_output = {0};
 
 EFI_STATUS
