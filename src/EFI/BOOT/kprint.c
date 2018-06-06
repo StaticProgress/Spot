@@ -141,23 +141,25 @@ void kprint(UINT8 *frame_base, UINTN x, UINTN y, UINT32 color, char *str) {
 void kprint_m(UINT8 *frame_base, UINT32 color, char* str) {
 	UINTN offset = curr_y * 1024 + curr_x;
 	for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
-		if (31 < (*char_ptr) && (*char_ptr) < 127) {
+        //The last multiple of 14 (character width) is 756, but this is zero based.
+        //so we want to scroll when on or after this number.
+        if(curr_y >= 755) {
+            //TODO: Stop hardcoding character sizes.
+            int diff = 14 + (curr_y - 756);
+            kscroll(frame_base, diff);
+            offset -= diff * 1024;
+            curr_y -= diff;
+        }
+
+        if (31 < (*char_ptr) && (*char_ptr) < 127) {
 			kprint_char(frame_base, offset, color, *char_ptr);
 			offset += 9;
 		} else if (*char_ptr == '\n') {
 			curr_y += 14;
-			offset = curr_y * 1024 + curr_x;
+			offset = curr_y * 1024;
 		}
-
-        //The last multiple of 14 which is the character height.
-        if(curr_y > 756) {
-            //TODO: Stop hardcoding character sizes.
-            int diff = curr_y - 756;
-            kscroll(frame_base, diff);
-            curr_y -= diff;
-        }
 	}
-    
+    curr_x = offset % 1024;
 }
 
 //Will move the video memory up by the number of pixel rows.

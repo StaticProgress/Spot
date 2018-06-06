@@ -10,7 +10,6 @@
 //but can be turned off it's annoying.
 VIDEO_DEVICE video_output = {0};
 
-
 EFI_STATUS
 efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	InitializeLib(Image, SysTable);
@@ -205,12 +204,6 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 
 	// function to print string at specified x and y coordinates
 	kprint(frame_base, x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n");
-
-    for(int i = 0; i < 2; i++) {
-        printf("First test string\n");
-        printf("Second test string\n");
-        printf("Third test string\n");
-    }
 
 	return status;
 }
