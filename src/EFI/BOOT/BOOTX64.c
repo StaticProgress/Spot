@@ -4,10 +4,6 @@
 #include "graphics.h"
 #include "kprint.h"
 
-//Enable for debugging:
-//TODO: Simplify the debugging process so its not a pain in the rear.
-//#define SPOT_DEBUG
-
 VIDEO_DEVICE video_output = {0};
 
 EFI_STATUS
@@ -18,27 +14,6 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
 	UINTN handle_count = 0;
 	EFI_HANDLE *handle_buffer;
-
-    #ifdef SPOT_DEBUG
-   
-    //Code from here mainly:
-    //https://wiki.osdev.org/Debugging_UEFI_applications_with_GDB
-
-    EFI_LOADED_IMAGE *l_image = NULL;
-    status = uefi_call_wrapper(SysTable->BootServices->HandleProtocol,
-            3, Image, &LoadedImageProtocol, (void**) &l_image);
-
-    if(status != EFI_SUCCESS) {
-        Print(L"There was a problem trying to print the Image Base!\n");
-    } else {
-        Print(L"Image Base: %X\n", l_image->ImageBase);
-
-        int change_me = 1;
-        while(change_me) { __asm__ __volatile__("pause"); };
-    }
-    //End OSDev Reference
-
-    #endif
 
 	Print(L"Locating handles that support the Graphics Output Protocol...\n");
 
