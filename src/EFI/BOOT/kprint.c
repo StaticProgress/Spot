@@ -149,12 +149,12 @@ void kprint_m(UINT8 *frame_base, UINT32 color, char* str) {
 			offset = curr_y * 1024 + curr_x;
 		}
 
-        if(curr_y > 768) {
+        //The last multiple of 14 which is the character height.
+        if(curr_y > 756) {
             //TODO: Stop hardcoding character sizes.
-            //We need to scroll the terminal up by one character.
-            //Each character is 14 pixels.
-            kscroll(frame_base, 14);
-            curr_y -= 14;
+            int diff = curr_y - 756;
+            kscroll(frame_base, diff);
+            curr_y -= diff;
         }
 	}
     
@@ -167,7 +167,7 @@ void kscroll(UINT8 *frame_buffer_base, UINTN rows) {
     //Requires memory allocater though.
     //VIDEO_MODE *curr_mode = video_output.all_modes[video_output.cur_mode];
     UINTN pixel_num = rows * 1024 * 3;
-    UINTN video_mem_size = 768 * 1024;
+    UINTN video_mem_size = 768 * 1024 * 3;
     UINTN shift_size = video_mem_size - pixel_num; 
     //Shift up the video memory
     spot_memcpy(frame_buffer_base, frame_buffer_base + pixel_num, shift_size);
