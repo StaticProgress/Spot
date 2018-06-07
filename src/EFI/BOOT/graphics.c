@@ -37,7 +37,22 @@ DRAW_PIXEL_FN select_draw_pixel(EFI_PIXEL_BITMASK *bitmask, EFI_GRAPHICS_PIXEL_F
 }
 
 void clear_screen() {
-	DRAW_PIXEL_FN draw = video_output.all_modes[video_output.cur_mode]->draw_pixel;
+	DRAW_PIXEL_FN draw = CUR_MODE->draw_pixel;
 	for (UINT32 i = 0; i < video_output.all_modes[video_output.cur_mode]->v_res; i++)
 		for (UINT32 j = 0; j < video_output.all_modes[video_output.cur_mode]->h_res; j++) draw(j, i, 0x0);
+}
+
+void draw_rect(UINTN x, UINTN y, UINTN width, UINTN height, UINT32 color) {
+    UINTN orig_x = x;
+    UINTN end_x = x + width;
+    UINTN end_y = y + height;
+    if(end_x > CUR_MODE->h_res)
+        end_x = CUR_MODE->h_res;
+    if(end_y > CUR_MODE->v_res)
+        end_y = CUR_MODE->v_res;
+    
+    DRAW_PIXEL_FN draw = CUR_MODE->draw_pixel;
+    for( ; y < end_y; y++)
+        for(x = orig_x; x < end_x; x++)
+            draw(x, y, color);
 }

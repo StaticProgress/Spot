@@ -1,14 +1,13 @@
 #include "kprint.h"
 #include "string.h"
 #include "graphics.h"
-#include "stdint.h"
 
-static UINTN curr_x, curr_y = 0;
-static void kscroll(UINTN *frame_buffer_base, UINTN rows);
+#include <efi.h>
+#include <efilib.h>
 
-void kprint_char(UINTN *frame_base, UINTN offset, UINT32 color, char character) {
+void kprint_char(UINTN x, UINTN y, UINT32 color, char character) {
 
-	UINT8 ascii_bits[95][13] = {
+	static UINT8 ascii_bits[95][13] = {
 	    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // space: 32
 	    {0x00, 0x00, 0x18, 0x18, 0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18}, // !
 	    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x36, 0x36, 0x36, 0x36}, // "
@@ -106,69 +105,46 @@ void kprint_char(UINTN *frame_base, UINTN offset, UINT32 color, char character) 
 	    {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x8f, 0xf1, 0x60, 0x00, 0x00, 0x00}  // ~: 126
 	};
 
-	UINT8 blue = 0xFF & color, green = 0xff & (color >> 8), red = 0xff & (color >> 16);
 	UINT8 char_idx = character - 32;
-    UINTN *frame_ptr = frame_base + offset * 3;
+    UINTN orig_x = x;
 
 	for (INTN r = 12; r >= 0; r--) {
 		for (INTN c = 7; c >= 0; c--) {
 			if ((ascii_bits[char_idx][r] >> c) & 1) {
-				*frame_ptr++ = blue;
-				*frame_ptr++ = green;
-				*frame_ptr++ = red;
-			} else {
-				frame_ptr+= 3;
+				video_output.all_modes[video_output.cur_mode]->draw_pixel(x, y, color);
 			}
+            x++;
 		}
-		frame_ptr += (1024 - 8) * 3;
+        x = orig_x;
+        y++;
 	}
 }
 
-void kprint(UINTN *frame_base, UINTN x, UINTN y, UINT32 color, char *str) {
-	UINTN offset = y * 1024 + x;
-	for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
+void kprint(UINTN x, UINTN y, UINT32 color, char *str) {
+	UINTN orig_x = x;
+    for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
 		if (31 < (*char_ptr) && (*char_ptr) < 127) {
-			kprint_char(frame_base, offset, color, *char_ptr);
-			offset += 9;
-		} else if (*char_ptr == '\n') {
+			kprint_char(x, y, color, *char_ptr);
+		    x += 9;
+        } else if (*char_ptr == '\n') {
 			y += 14;
-			offset = y * 1024 + x;
+            x = orig_x;
 		}
 	}
-}
-
-//KPrint that remembers where it last printed and continues to print there.
-void kprint_m(UINTN *frame_base, UINT32 color, char* str) {
-	UINTN offset = curr_y * 1024 + curr_x;
-	for (char *char_ptr = str; *char_ptr != '\0'; char_ptr++) {
-		if (31 < (*char_ptr) && (*char_ptr) < 127) {
-			kprint_char(frame_base, offset, color, *char_ptr);
-			offset += 9;
-		} else if (*char_ptr == '\n') {
-			curr_y += 14;
-			offset = curr_y * 1024 + curr_x;
-		}
-
-        if(curr_y > 768) {
-            //TODO: Stop hardcoding character sizes.
-            //We need to scroll the terminal up by one character.
-            //Each character is 14 pixels.
-            kscroll(video_output.frame_buffer_base, 14);
-            curr_y -= 14;
-        }
-	}
-    
 }
 
 //Will move the video memory up by the number of pixel rows.
 //Also zeroes out the area of memory that is at the end of the memory.
-static void kscroll(UINTN *frame_buffer_base, UINTN rows) {
-    //TODO: We should not be using memcpy but instead memmove, but for that we need the memory allocater.
-    VIDEO_MODE *curr_mode = video_output.all_modes[video_output.cur_mode];
-    UINTN pixel_num = rows * curr_mode->v_res * 3;
-    UINTN video_mem_size = curr_mode->h_res * curr_mode->v_res;
+void kscroll(UINTN rows) {
+    //TODO: Switch from memcpy to memmove as the regions are overlapping.
+    //Requires memory allocater though.
+    //VIDEO_MODE *curr_mode = video_output.all_modes[video_output.cur_mode];
+    UINTN pixel_num = rows * 1024 * 3;
+    UINTN video_mem_size = 768 * 1024 * 3;
     UINTN shift_size = video_mem_size - pixel_num;
-    memcpy(frame_buffer_base, frame_buffer_base + pixel_num, shift_size);
+    UINT8 *frame_buffer_base = video_output.frame_buffer_base;
+    //Shift up the video memory
+    spot_memcpy(frame_buffer_base, frame_buffer_base + pixel_num, shift_size);
     //Clear the last row.
-    memset(frame_buffer_base + shift_size, 0x0, pixel_num);
+    spot_memset(frame_buffer_base + shift_size, 0x0, pixel_num);
 }

@@ -14,24 +14,32 @@ INCDIR := -I $(SRCDIR) -I $(EFIDIR)/inc -I $(EFIDIR)/inc/$(ARCH) -I $(EFIDIR)/in
 
 CPPFLAGS := -DCONFIG_$(ARCH) -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --std=c11 -D__KERNEL__ -I /usr/src/sys/build/include
 
-CFLAGS := -mno-red-zone -mno-avx -fpic  -g -O2 -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
+CFLAGS := -mno-red-zone -mno-avx -fpic  -ggdb -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
 
 LDFLAGS := -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1 -shared -Bsymbolic -L $(EFIDIR)/$(ARCH)/lib -L $(EFIDIR)/$(ARCH)/gnuefi $(EFIDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
 
 LIBGCC := $(shell $(CC) -print-libgcc-file-name)
 LDLIBS := -lefi -lgnuefi $(LIBGCC) -T $(EFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
-TARGETS := BOOTX64.EFI
+TARGETS := BOOTX64.EFI BOOTX64.debug
 
-OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o
+OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o boot.o
 
 all: $(TARGETS)
 
 %.EFI : %.so
 	cd $(BUILDDIR); \
 	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
-		    -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela* \
-		    -j .reloc --target efi-app-$(ARCH) $< $@; \
+		       -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela*  -j .reloc \
+			   --target efi-app-$(ARCH) $< $@;
+
+%.debug : %.so
+	cd $(BUILDDIR); \
+	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
+		       -j .rela -j .rel.* -j .rela.* -j .rel* -j .rela*  -j .reloc \
+			   -j .debug_info -j .debug_abbrev -j .debug_loc -j .debug_aranges \
+			   -j .debug_line -j .debug_macinfo -j .debug_str -j .debug* \
+			   --target efi-app-$(ARCH) $< $@; \
 	rm -rf $<
 
 %.so: $(OBJECTS) $(BUILDDIR)
