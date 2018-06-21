@@ -1,8 +1,10 @@
 #include <efi.h>
+#include <stdarg.h>
 
 #include "print.h"
 #include "graphics.h"
 #include "kprint.h"
+#include "util.h"
 
 static UINTN curr_x, curr_y = 0;
 
@@ -20,24 +22,49 @@ static void scroll_up_one_line() {
     kscroll(diff);
 }
 
-void printf(char *str) {
-    for(char *character = str; *character != '\0'; character++) {
-        //Protect against really long lines with wrapping.
-        //1017 is the last multiple of 9 (character width) in 1024
-        if(curr_x >= 1017) {
-            newline();
-        }
+static void print_char(char character) {
+    //Protect against really long lines with wrapping.
+    //1017 is the last multiple of 9 (character width) in 1024
+    if(curr_x >= 1017) {
+        newline();
+    }
 
-        if(curr_y >= 756) {
-            scroll_up_one_line();
-        }
+    if(curr_y >= 756) {
+        scroll_up_one_line();
+    }
+
+    kprint_char(curr_x, curr_y, 0xFFFFFF, character);
+    curr_x += 9; 
+}
+
+static void print_signed_integer(int data) {
+    char num_buff[12];
+    itoa(num_buff, 12, data);
+    for(int i = 0; i < 12 && num_buff[i] != '\0'; i++)
+        print_char(num_buff[i]);
+}
+
+void printf(char *str, ...) {
+    va_list inputs;
+    va_start(inputs, str);
+
+    for(char *character = str; *character != '\0'; character++) {
 
         if(*character == '\n') {
             //TODO: Add support for abitrarily sized characters.
             newline();
+        } else if(*character == '%') {
+            //The character should point to a % sign and therefore is a valid formatter 
+            switch(*(++character)) {
+                case 'd':
+                    //Integer, signed, four bytes.
+                    print_signed_integer(va_arg(inputs, int));
+                    character++;
+                    break; 
+            }
         } else {
-            kprint_char(curr_x, curr_y, 0xFFFFFF, *character);
-            curr_x += 9;
+            print_char(*character);
         }
     }
+    va_end(inputs);
 }
