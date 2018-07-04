@@ -1,6 +1,7 @@
     .intel_syntax noprefix
     .global load_gdt
-    .global finish
+    .global store_gdt
+
 load_gdt:
     cli
     #Insert loading newly updated idt pointer.
@@ -16,3 +17,7 @@ load_gdt:
     pushq 0x08           # Put the code selector on the stack
     pushq rax            # Put the return address back
     retfq               # Get out of here and return back with the new gdt and segment registers!!!
+
+store_gdt:
+    sgdt [rdi]
+    ret

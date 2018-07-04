@@ -13,7 +13,7 @@ typedef struct {
  * 64 bit is not supposed to use segmentation. This means that the base is always 0 and the 
  * limit is always the max it can go, meaning that no checking is effectively done. */
 void setup_flat_gdt();
-extern void load_gdt(gdt_ptr *gdtr);
-void sgdt(gdt_ptr *gdt_p);
+extern void load_gdt(gdt_ptr *gdtp);
+extern void store_gdt(gdt_ptr *gdtp);
 
 #endif
