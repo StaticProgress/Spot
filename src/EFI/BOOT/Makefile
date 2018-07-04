@@ -1,5 +1,6 @@
 SRCDIR := $(TOPDIR)/src
 
+AS := as
 CC := gcc
 LD := ld
 OBJCOPY := objcopy
@@ -14,7 +15,9 @@ INCDIR := -I $(SRCDIR) -I $(EFIDIR)/inc -I $(EFIDIR)/inc/$(ARCH) -I $(EFIDIR)/in
 
 CPPFLAGS := -DCONFIG_$(ARCH) -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --std=c11 -D__KERNEL__ -I /usr/src/sys/build/include
 
-CFLAGS := -mno-red-zone -mno-avx -fpic  -ggdb -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
+CFLAGS := -mno-red-zone -mno-avx -fPIC  -ggdb -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
+
+ASMFLAGS := -g -Wall -k
 
 LDFLAGS := -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1 -shared -Bsymbolic -L $(EFIDIR)/$(ARCH)/lib -L $(EFIDIR)/$(ARCH)/gnuefi $(EFIDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
 
@@ -23,7 +26,7 @@ LDLIBS := -lefi -lgnuefi $(LIBGCC) -T $(EFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 TARGETS := BOOTX64.EFI BOOTX64.debug
 
-OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o util.o
+OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o util.o mem_desc.o gdt.o kmain.o gdt_util.o
 
 all: $(TARGETS)
 
@@ -48,6 +51,9 @@ all: $(TARGETS)
 
 %.o: %.c $(OBJDIR)
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $(OBJDIR)/$@
+
+%.o: %.s $(OBJDIR)
+	$(AS) $(ASMFLAGS) -c $< -o $(OBJDIR)/$@
 
 $(OBJDIR):
 	mkdir -p $@

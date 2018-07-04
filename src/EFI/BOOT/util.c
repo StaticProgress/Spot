@@ -11,15 +11,20 @@ static void reverse(char *str, int str_size) {
 }
 
 void itoa(char* str, int str_size, int num) {
-    int i;
+    int i = 0;
     int neg = num < 0;
     if(neg)
         num = -num;
 
-    for(i = 0; i < str_size && num != 0; i++) {
-        str[i] = (num % 10) + 48;
-        num /= 10;
+    if(num == 0)
+        str[i++] = '0';
+    else {
+        for(; i < str_size && num != 0; i++) {
+            str[i] = (num % 10) + 48;
+            num /= 10;
+        }
     }
+
     if(i >= str_size)
         return; //This should throw an error but won't be possible
                 //in the final implimentation so I am not too worried.

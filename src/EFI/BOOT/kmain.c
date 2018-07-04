@@ -1,9 +1,10 @@
 #include <efi.h>
 
 #include "kmain.h"
-#include "memalloc.h"
 #include "kprint.h"
+#include "print.h"
 #include "graphics.h"
+#include "gdt.h"
 
 static void draw_logo() {
     // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
@@ -17,4 +18,7 @@ static void draw_logo() {
 void kmain() {
     clear_screen();
     draw_logo();
+    
+    printf("Attempting to setup GDT...\n");
+    setup_flat_gdt();
 }

@@ -59,7 +59,6 @@ void printf(char *str, ...) {
                 case 'd':
                     //Integer, signed, four bytes.
                     print_signed_integer(va_arg(inputs, int));
-                    character++;
                     break; 
             }
         } else {
