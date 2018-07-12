@@ -26,7 +26,7 @@ LDLIBS := -lefi -lgnuefi $(LIBGCC) -T $(EFIDIR)/gnuefi/elf_$(ARCH)_efi.lds
 
 TARGETS := BOOTX64.EFI BOOTX64.debug
 
-OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o util.o mem_desc.o gdt.o kmain.o gdt_util.o interrupts.o
+OBJECTS := BOOTX64.o kprint.o graphics.o string.o print.o util.o mem_desc.o gdt.o kmain.o gdt_util.o idt_util.o idt.o interrupts.o isr_wrap.o
 
 all: $(TARGETS)
 

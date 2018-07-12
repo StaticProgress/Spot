@@ -18,12 +18,30 @@ typedef struct {
     UINT8 base_high;
 } __attribute__((packed)) segment_desc;
 
+typedef struct {
+    UINT16 base_low;
+    UINT16 selector;
+    UINT8 zero_low;
+    UINT8 type;
+    UINT16 base_middle;
+    UINT32 base_high;
+    UINT32 zero_high;
+} __attribute__((packed)) gate_desc;
+
+typedef struct {
+    UINT16 limit;
+    UINTN base;
+} __attribute__((packed)) desc_ptr;
+
 //To help me later the first letter of these flags signals if it should be 
 //or'd in the type or lim_flags field.
 #define T_TYPE_CODE 0b10011010
 #define T_TYPE_DATA 0b10010010
 #define LIM_FLAGS 0b10100000
+#define IDT_TRAP 0x8F
+#define IDT_INTERRUPT 0x8E
 
 void setup_seg_desc(segment_desc *seg_d, UINT32 base, UINT32 lim, UINT8 type, UINT8 lim_flags);
+void setup_gate_desc(gate_desc *gate_d, UINT64 base, UINT16 cs_selector, UINT8 type);
 
 #endif
