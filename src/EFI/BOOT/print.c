@@ -44,6 +44,13 @@ static void print_signed_integer(int data) {
         print_char(num_buff[i]);
 }
 
+static void print_hex_integer(int data) {
+    char num_buff[17];
+    itox(num_buff, 17, data);
+    for(int i = 0; i < 17 && num_buff[i] != '\0'; i++)
+        print_char(num_buff[i]);
+}
+
 void printf(char *str, ...) {
     va_list inputs;
     va_start(inputs, str);
@@ -60,6 +67,10 @@ void printf(char *str, ...) {
                     //Integer, signed, four bytes.
                     print_signed_integer(va_arg(inputs, int));
                     break; 
+                case 'x':
+                    //Integer, in Hexidecimal.
+                    print_hex_integer(va_arg(inputs, int));
+                    break;
             }
         } else {
             print_char(*character);

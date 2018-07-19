@@ -29,6 +29,10 @@ void kmain() {
     interrupts_on();
 
     printf("Attempting to Throw an exception!\n");
+
+    printf("Testing Hex Printing: %x %x %x %x %x", 0xF, 1, 100, 0, 0xFFFFFFFF);
+    while(1) {}
+
     int j = 0;
     int i = 9 / j;
     (void) i;

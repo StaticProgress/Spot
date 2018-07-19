@@ -1,7 +1,7 @@
 SRCDIR := $(TOPDIR)/src
 
 AS := as
-CC := gcc
+CC := gcc-7
 LD := ld
 OBJCOPY := objcopy
 ARCH := x86_64
@@ -17,7 +17,7 @@ CPPFLAGS := -DCONFIG_$(ARCH) -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --s
 
 CFLAGS := -mno-red-zone -mno-avx -fPIC  -ggdb -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
 
-ASMFLAGS := -g -Wall -k
+ASMFLAGS := -g -Wall -k -no-pie
 
 LDFLAGS := -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1 -shared -Bsymbolic -L $(EFIDIR)/$(ARCH)/lib -L $(EFIDIR)/$(ARCH)/gnuefi $(EFIDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
 

@@ -35,3 +35,23 @@ void itoa(char* str, int str_size, int num) {
     str[i] = '\0';
     reverse(str, i);
 }
+
+void itox(char* str, int str_size, int num) {
+    //Turn num into unsigned so we don't shift 1's right.
+    unsigned int unum = (unsigned int) num;
+    int i = 0;
+    if(unum == 0)
+        str[i++] = '0';
+    else {
+        for(; i < str_size && unum != 0; i++) {
+            int hex_num = unum & 0x0000000F;
+            if(hex_num <= 9)
+                str[i] = hex_num + 48; //0 - 9
+            else
+                str[i] = hex_num + 55; //A - F
+            unum = unum >> 4;
+        }
+    }
+    str[i] = '\0';
+    reverse(str, i);
+}
