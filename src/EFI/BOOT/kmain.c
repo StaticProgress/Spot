@@ -7,6 +7,7 @@
 #include "interrupts.h"
 #include "gdt.h"
 #include "idt.h"
+#include "cpuid.h"
 
 static void draw_logo() {
     // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
@@ -21,20 +22,23 @@ void kmain() {
     clear_screen();
     draw_logo();
     
-    printf("Attempting to setup GDT...\n");
+    printf("Attempting to setup GDT / IDT ... ");
    
     interrupts_off();
     setup_flat_gdt();
-    setup_basic_idt();
+//    setup_basic_idt();
     interrupts_on();
 
-    printf("Attempting to Throw an exception!\n");
+    printf("Done!\n");
 
-    printf("Testing Hex Printing: %x %x %x %x %x", 0xF, 1, 100, 0, 0xFFFFFFFF);
-    while(1) {}
+    //Check to see if the APIC is supported.
+    UINTN *edx = 0;
+    UINTN *trash = 0;
+    cpuid(0x01, trash, trash, trash, edx);
+    UINTN pic_mask = 1 << 9;
+    if(*edx & pic_mask)
+        printf("APIC supported!\n");
 
-    int j = 0;
-    int i = 9 / j;
-    (void) i;
-    while(1) {}
+    //So we don't get UEFI restarting and get confused for a week again...
+    while(1){}
 }

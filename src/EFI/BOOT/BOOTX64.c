@@ -18,7 +18,15 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 	UINTN handle_count = 0;
 	EFI_HANDLE *handle_buffer;
 
-	Print(L"Locating handles that support the Graphics Output Protocol...\n");
+    EFI_LOADED_IMAGE *loaded_image = NULL;
+    status = uefi_call_wrapper(SysTable->BootServices->HandleProtocol, 3, Image, &gEfiLoadedImageProtocolGuid, (void**) &loaded_image);
+    if(status != EFI_SUCCESS)
+        Print(L"Error Trying to get Loaded Image Base Address!\n");
+
+    Print(L"Make sure Image Base is located at the right base...\n");
+    Print(L"Image Base: 0x%08lx\n", loaded_image->ImageBase);
+    
+    Print(L"Locating handles that support the Graphics Output Protocol...\n");
 
 	status = uefi_call_wrapper(SysTable->BootServices->LocateHandleBuffer, 3, ByProtocol, &gEfiGraphicsOutputProtocolGuid, NULL, &handle_count, &handle_buffer);
 
