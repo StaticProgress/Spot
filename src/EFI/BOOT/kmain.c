@@ -15,18 +15,28 @@ static void draw_logo() {
     draw_rect(x - (w / 2), y - (h / 2), w, h, 0xFFFFFF);
 
 	// function to print string at specified x and y coordinates
-    kprint(x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n");    
+    kprint(x - 45, y - 14, 0xEF7223, "Welcome to\nSpot OS!\n");
 }
 
-void kmain() {
+void kmain(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size, UINTN desc_size) {
     clear_screen();
     draw_logo();
-    
+
+    (void) desc_size;
+    //Finding memory size in pages
+    UINTN page_num = 0;
+    EFI_MEMORY_DESCRIPTOR *addr;
+    for(addr = mem_map; addr < (EFI_MEMORY_DESCRIPTOR*)((void*)(mem_map) + map_size); addr += 1) {
+        printf("NOP: %d, TYPE: %d\n", addr->PhysicalStart, addr->Type);
+    }
+
+    printf("Current Memory Size in Pages: %d\n", page_num);
+
     printf("Attempting to setup GDT / IDT ... ");
-   
+
     interrupts_off();
     setup_flat_gdt();
-//    setup_basic_idt();
+    setup_basic_idt();
     interrupts_on();
 
     printf("Done!\n");
