@@ -53,7 +53,7 @@ EFI_STATUS efi_stage_get_mem_map(EFI_SYSTEM_TABLE *SysTable, EFI_MEMORY_DESCRIPT
         }
 
         alloc_pages = *map_size / 4096 + 1; // allocate the number of pages (4K) needed for memory map
-        status = uefi_call_wrapper(SysTable->BootServices->AllocatePages, 4, AllocateAnyPages, mem_map->Type, alloc_pages, &alloc_addr);
+        status = uefi_call_wrapper(SysTable->BootServices->AllocatePages, 4, AllocateAnyPages, EfiLoaderData, alloc_pages, &alloc_addr);
         mem_map = (EFI_MEMORY_DESCRIPTOR*) alloc_addr;
         *map_size = alloc_pages * 4096;
 

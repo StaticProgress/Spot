@@ -22,15 +22,16 @@ void kmain(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size, UINTN desc_size) {
     clear_screen();
     draw_logo();
 
+    // UINTN page_num;
+
     (void) desc_size;
-    //Finding memory size in pages
-    UINTN page_num = 0;
-    EFI_MEMORY_DESCRIPTOR *addr;
-    for(addr = mem_map; addr < (EFI_MEMORY_DESCRIPTOR*)((void*)(mem_map) + map_size); addr += 1) {
-        printf("NOP: %d, TYPE: %d\n", addr->PhysicalStart, addr->Type);
+    for(UINTN i = 0; i < map_size; i += sizeof(EFI_MEMORY_DESCRIPTOR)) {
+        EFI_MEMORY_DESCRIPTOR *curr_desc = (EFI_MEMORY_DESCRIPTOR*)((char*)mem_map + i);
+        printf("NOP: %d, TYPE: %d, PS: %d\n", curr_desc->NumberOfPages, curr_desc->Type, curr_desc->PhysicalStart);
     }
 
-    printf("Current Memory Size in Pages: %d\n", page_num);
+
+    // printf("Current Memory Size in Pages: %d\n", page_num);
 
     printf("Attempting to setup GDT / IDT ... ");
 
