@@ -1,4 +1,7 @@
+#include <efi.h>
+
 #include "util.h"
+
 
 static void reverse(char *str, int str_size) {
     char *start = str, *end = (str + str_size - 1);

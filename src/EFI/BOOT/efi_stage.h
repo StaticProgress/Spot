@@ -9,6 +9,6 @@
 #include <efi.h>
 
 EFI_STATUS efi_stage_print_debug_addr(EFI_HANDLE *Image, EFI_SYSTEM_TABLE *SysTable);
-EFI_STATUS efi_stage_get_mem_map(EFI_SYSTEM_TABLE *SysTable, EFI_MEMORY_DESCRIPTOR *mem_map, UINTN *map_size, UINTN *desc_size, UINTN *map_key);
+EFI_STATUS efi_stage_get_mem_map(EFI_SYSTEM_TABLE *SysTable, EFI_MEMORY_DESCRIPTOR **mem_map, UINTN *map_size, UINTN *desc_size, UINTN *map_key);
 
 #endif

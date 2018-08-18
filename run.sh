@@ -1,5 +1,5 @@
 #Universal Flags
-flags="-d int,cpu_reset"
+flags="-m 4G -d int,cpu_reset"
 DEBUG=0
 
 #If you use the 'debug' flag while running, qemu will wait for GDB

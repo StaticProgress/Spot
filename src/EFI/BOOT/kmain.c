@@ -8,6 +8,7 @@
 #include "gdt.h"
 #include "idt.h"
 #include "cpuid.h"
+#include "ppm.h"
 
 static void draw_logo() {
     // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
@@ -22,16 +23,15 @@ void kmain(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size, UINTN desc_size) {
     clear_screen();
     draw_logo();
 
-    // UINTN page_num;
-
+    UINTN page_num = 0;
     (void) desc_size;
-    for(UINTN i = 0; i < map_size; i += sizeof(EFI_MEMORY_DESCRIPTOR)) {
+    for(UINTN i = 0; i < map_size; i += desc_size) {
         EFI_MEMORY_DESCRIPTOR *curr_desc = (EFI_MEMORY_DESCRIPTOR*)((char*)mem_map + i);
-        printf("NOP: %d, TYPE: %d, PS: %d\n", curr_desc->NumberOfPages, curr_desc->Type, curr_desc->PhysicalStart);
+        page_num += curr_desc->NumberOfPages;
     }
 
 
-    // printf("Current Memory Size in Pages: %d\n", page_num);
+    printf("Current Memory Size in Pages: %d\n", page_num);
 
     printf("Attempting to setup GDT / IDT ... ");
 
@@ -41,6 +41,9 @@ void kmain(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size, UINTN desc_size) {
     interrupts_on();
 
     printf("Done!\n");
+
+    //Setup malloc and physical page management.
+    setup_ppm(mem_map, map_size, desc_size);
 
     //Check to see if the APIC is supported.
     UINTN *edx = 0;

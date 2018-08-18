@@ -103,7 +103,13 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
     //-- GETTING MEMORY MAP --
     EFI_MEMORY_DESCRIPTOR *mem_map = NULL;
     UINTN map_size = 0, map_key = 0, desc_size = 0;
-	status = efi_stage_get_mem_map(SysTable, mem_map, &map_size, &desc_size, &map_key);
+	status = efi_stage_get_mem_map(SysTable, &mem_map, &map_size, &desc_size, &map_key);
+
+    if(status != EFI_SUCCESS) {
+        Print(L"Failed to get memory map! Exiting!\n");
+        WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
+		return status;
+    }
 
 	// ! cannot use any function between getting the memory map and exiting boot services since it will invalidate the map key !
 	status = uefi_call_wrapper(SysTable->BootServices->ExitBootServices, 2, Image, map_key);
@@ -113,6 +119,7 @@ efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {
 		WaitForSingleEvent(SysTable->ConIn->WaitForKey, 0);
 		return status;
 	}
+    //TODO: Nullify elements of the ST and recompute CRC.
 
     kmain(mem_map, map_size, desc_size);
 
