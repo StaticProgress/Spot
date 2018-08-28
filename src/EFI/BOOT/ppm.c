@@ -28,11 +28,15 @@ static int is_free_mem(EFI_MEMORY_TYPE type) {
 }
 
 /*
- * Because we insert all these PPM_Nodes into the list with front insertion,
- * and because the efi_mem_map is in physical address order, we only have to
- * check one node to see if its continguous.
+ * Returns true if these pages are back-to-back with another node,
+ * and then expands the first node to be the right size.
  */
 static int continguous_pages(EFI_MEMORY_DESCRIPTOR *desc) {
+    /*
+     * Because we insert all these PPM_Nodes into the list with front insertion,
+     * and because the efi_mem_map is in physical address order, we only have to
+     * check one node to see if its continguous.
+     */
     if(pages_free() && (UINTN)(free_pages->addr + (free_pages->page_num * PAGE_SIZE)) == desc->PhysicalStart) {
         //Back-to-back pages
         free_pages->page_num += desc->NumberOfPages;

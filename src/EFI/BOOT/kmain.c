@@ -30,7 +30,6 @@ void kmain(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size, UINTN desc_size) {
         page_num += curr_desc->NumberOfPages;
     }
 
-
     printf("Current Memory Size in Pages: %d\n", page_num);
 
     printf("Attempting to setup GDT / IDT ... ");
