@@ -1,14 +1,16 @@
 #include <efi.h>
 #include <efilib.h>
 
-#include "graphics.h"
-#include "kprint.h"
-#include "print.h"
-#include "string.h"
+#include "stdlib/graphics.h"
+#include "stdlib/kprint.h"
+#include "stdlib/print.h"
+#include "stdlib/string.h"
 #include "efi_stage.h"
 #include "kmain.h"
 
 VIDEO_DEVICE video_output = {0};
+
+
 
 EFI_STATUS
 efi_main(EFI_HANDLE Image, EFI_SYSTEM_TABLE *SysTable) {

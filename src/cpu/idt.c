@@ -1,7 +1,7 @@
 #include "idt.h"
 #include "mem_desc.h"
-#include "print.h"
-#include "string.h"
+#include "stdlib/print.h"
+#include "stdlib/string.h"
 #include "interrupts.h"
 
 static desc_ptr idt_p;
@@ -16,7 +16,7 @@ void unknown_print() {
 void setup_basic_idt() {
     idt_p.base = (UINTN) idt_vec;
     idt_p.limit = sizeof(idt_vec);
-    
+
     //Setup the idt_vec with a basic printing function.
     //Set the reserved interrupts to 0. (9, 15, 20-29, 31)
     spot_memset(&idt_vec[9], 0x0, sizeof(gate_desc));
@@ -26,7 +26,7 @@ void setup_basic_idt() {
     for(int i = 20; i < 30; i++) {
         spot_memset(&idt_vec[i], 0x0, sizeof(gate_desc));
     }
-    
+
     //Set all the traps to the basic printing function (1 - 4).
     for(int i  = 1; i < 5; i++) {
         setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_TRAP);
@@ -36,18 +36,18 @@ void setup_basic_idt() {
     //(0, 5-8, 10-14, 16-19, 30)
     setup_gate_desc(&idt_vec[0], (UINT64) isr_div_ex_callback, 0x08, IDT_INTERRUPT);
     setup_gate_desc(&idt_vec[30], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT);
-    
+
     for(int i = 5; i < 9; i++) {
-        setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT); 
+        setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT);
     }
-    
+
     for(int i = 10; i < 15; i++) {
-        setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT); 
+        setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT);
     }
 
     for(int i  = 16; i < 19; i++) {
         setup_gate_desc(&idt_vec[i], (UINT64) isr_unknown, 0x08, IDT_INTERRUPT);
-    }    
+    }
 
     load_idt(&idt_p);
 }

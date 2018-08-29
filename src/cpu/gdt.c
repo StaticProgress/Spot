@@ -1,6 +1,6 @@
 #include "gdt.h"
 #include "mem_desc.h"
-#include "print.h"
+#include "stdlib/print.h"
 #include "interrupts.h"
 
 static desc_ptr gdt_p;
@@ -19,4 +19,3 @@ void setup_flat_gdt() {
     //Now we have to load the gdt into the gdtr.
     load_gdt(&gdt_p);
 }
-

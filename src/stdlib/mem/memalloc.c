@@ -1,6 +1,5 @@
 #include <efi.h>
 #include "memalloc.h"
-#include "minqueue.h"
 #include "ppm.h"
 
 //TODO: Map the pages to virtual memory after receiving them from the ppm.

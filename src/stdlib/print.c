@@ -1,10 +1,10 @@
 #include <efi.h>
 #include <stdarg.h>
 
-#include "print.h"
-#include "graphics.h"
-#include "kprint.h"
-#include "util.h"
+#include "stdlib/print.h"
+#include "stdlib/graphics.h"
+#include "stdlib/kprint.h"
+#include "util/util.h"
 
 static UINTN curr_x, curr_y = 0;
 
@@ -34,7 +34,7 @@ static void print_char(char character) {
     }
 
     kprint_char(curr_x, curr_y, 0xFFFFFF, character);
-    curr_x += 9; 
+    curr_x += 9;
 }
 
 static void print_signed_integer(int data) {
@@ -61,12 +61,12 @@ void printf(char *str, ...) {
             //TODO: Add support for abitrarily sized characters.
             newline();
         } else if(*character == '%') {
-            //The character should point to a % sign and therefore is a valid formatter 
+            //The character should point to a % sign and therefore is a valid formatter
             switch(*(++character)) {
                 case 'd':
                     //Integer, signed, four bytes.
                     print_signed_integer(va_arg(inputs, int));
-                    break; 
+                    break;
                 case 'x':
                     //Integer, in Hexidecimal.
                     print_hex_integer(va_arg(inputs, int));

@@ -1,6 +1,6 @@
 #include <efi.h>
 #include "interrupts.h"
-#include "print.h"
+#include "stdlib/print.h"
 
 void interrupts_off() {
     __asm__("cli");

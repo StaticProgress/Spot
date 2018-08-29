@@ -2,7 +2,7 @@
 #include <efilib.h>
 
 #include "efi_stage.h"
-#include "graphics.h"
+#include "stdlib/graphics.h"
 
 EFI_STATUS efi_stage_print_debug_addr(EFI_HANDLE *Image, EFI_SYSTEM_TABLE *SysTable) {
     EFI_STATUS status;

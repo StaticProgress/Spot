@@ -2,6 +2,7 @@
 
 #include "ppm.h"
 #include "memalloc.h"
+#include "stdlib/print.h"
 
 struct PPM_Node {
     char *addr;
@@ -74,6 +75,8 @@ static void convert_efi_map(EFI_MEMORY_DESCRIPTOR *efi_mem_map, UINTN efi_map_si
  * will be used to keep track of the rest of the pages.
  */
 void setup_ppm(EFI_MEMORY_DESCRIPTOR *efi_mem_map, UINTN efi_map_size, UINTN desc_size) {
+    //TODO: Remove this and import; for testing only.
+    printf("Testing!\n");
     #define INITIAL_PAGES 2
     //Setup a page for the normal allocater so that we can get malloc working
     //as quickly as humanly possible.

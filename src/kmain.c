@@ -1,14 +1,14 @@
 #include <efi.h>
 
 #include "kmain.h"
-#include "kprint.h"
-#include "print.h"
-#include "graphics.h"
-#include "interrupts.h"
-#include "gdt.h"
-#include "idt.h"
-#include "cpuid.h"
-#include "ppm.h"
+#include "stdlib/kprint.h"
+#include "stdlib/print.h"
+#include "stdlib/graphics.h"
+#include "cpu/interrupts.h"
+#include "cpu/gdt.h"
+#include "cpu/idt.h"
+#include "cpu/cpuid.h"
+#include "stdlib/mem/ppm.h"
 
 static void draw_logo() {
     // get frame buffer base and draw a square. note that qemu's 1024x768 mode is 24 bits (found in PixelBitMask)
