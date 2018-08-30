@@ -1,18 +1,18 @@
 SRCDIR := $(TOPDIR)/src
 
 export AS := as
-export CC := gcc-7
+export CC := gcc
 export LD := ld
 OBJCOPY := objcopy
 ARCH := x86_64
 
 DIRSTEM := EFI/BOOT
-export OBJDIR := $(TOPDIR)/obj/$(DIRSTEM)
+export OBJDIR := $(TOPDIR)/obj
 BUILDDIR := $(TOPDIR)/build/$(DIRSTEM)
 EFIDIR := $(TOPDIR)/gnu-efi
 
-export INCDIR := -I $(SRCDIR) -I $(EFIDIR)/inc -I $(EFIDIR)/inc/$(ARCH) -I $(EFIDIR)/inc/protocol
-export CPPFLAGS := -DCONFIG_$(ARCH) -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --std=c11 -D__KERNEL__ -I /usr/src/sys/build/include
+export INCDIR := -I $(SRCDIR) -I $(EFIDIR)/inc -I $(EFIDIR)/inc/$(ARCH) -I $(EFIDIR)/inc/protocol -I /usr/src/sys/build/include
+export CPPFLAGS := -DCONFIG_$(ARCH) -DGNU_EFI_USE_MS_ABI -maccumulate-outgoing-args --std=c11 -D__KERNEL__
 export CFLAGS := -mno-red-zone -mno-avx -fPIC  -ggdb -Wall -Wextra -Werror -fshort-wchar -fno-strict-aliasing -fno-merge-all-constants -ffreestanding -fno-stack-protector -fno-stack-check
 export ASMFLAGS := -g -Wall -k -no-pie
 LDFLAGS := -nostdlib --warn-common --no-undefined --fatal-warnings --build-id=sha1 -shared -Bsymbolic -L $(EFIDIR)/$(ARCH)/lib -L $(EFIDIR)/$(ARCH)/gnuefi $(EFIDIR)/$(ARCH)/gnuefi/crt0-efi-$(ARCH).o
@@ -24,7 +24,7 @@ TARGETS := BOOTX64.EFI BOOTX64.debug
 
 SUBDIRS := boot cpu stdlib util
 OBJECTS := kmain.o
-LDOBJECTS := $(wildcard $(OBJDIR)/*.o)
+LDOBJECTS = $(wildcard $(OBJDIR)/*.o)
 
 all: $(TARGETS)
 
@@ -46,10 +46,9 @@ all: $(TARGETS)
 			   rm -rf $<
 
 %.so: $(SUBDIRS) $(OBJECTS) $(BUILDDIR)
-	@echo "SUBDIRS: " $(SUBDIRS)
 	cd $(OBJDIR); $(LD) $(LDFLAGS) $(LDOBJECTS) -o $(BUILDDIR)/$@ $(LDLIBS)
 
-$(SUBDIRS):
+$(SUBDIRS): $(OBJDIR)
 	cd $@; $(MAKE)
 
 $(OBJDIR):

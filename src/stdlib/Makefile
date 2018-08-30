@@ -7,8 +7,8 @@ all: $(OBJECTS) $(SUBDIRS)
 $(SUBDIRS):
 	cd $@; $(MAKE)
 
-%.o: %.c $(OBJDIR)
+%.o: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $(OBJDIR)/$@
 
-%.o: %.s $(OBJDIR)
+%.o: %.s
 	$(AS) $(ASMFLAGS) -c $< -o $(OBJDIR)/$@

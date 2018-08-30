@@ -2,8 +2,8 @@ OBJECTS := apic.o cpuid.o gdt_util.o gdt.o idt_util.o idt.o interrupts.o isr_wra
 
 all: $(OBJECTS)
 
-%.o: %.c $(OBJDIR)
+%.o: %.c
 	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $(OBJDIR)/$@
 
-%.o: %.s $(OBJDIR)
+%.o: %.s 
 	$(AS) $(ASMFLAGS) -c $< -o $(OBJDIR)/$@
