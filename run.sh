@@ -1,5 +1,5 @@
 #Universal Flags
-flags=""
+flags="-m 4G -d int,cpu_reset"
 DEBUG=0
 
 #If you use the 'debug' flag while running, qemu will wait for GDB
@@ -20,5 +20,5 @@ fi
 if [[ $DEBUG -eq 1 ]]; then
     #Wait until qemu is paused to try and connect...
     sleep 8
-    ./debug.sh
+    gdb build/EFI/BOOT/BOOTX64.EFI
 fi
